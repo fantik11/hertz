@@ -19,6 +19,7 @@ package standard
 import (
 	"crypto/tls"
 	"net"
+	"sync/atomic"
 	"time"
 
 	"github.com/cloudwego/hertz/pkg/network"
@@ -26,8 +27,24 @@ import (
 
 type dialer struct{}
 
+var (
+	srcAddrs = []*net.TCPAddr{
+		{IP: net.ParseIP("194.26.229.214")}, // твои исходящие IP
+		{IP: net.ParseIP("194.26.229.215")},
+		{IP: net.ParseIP("194.26.229.216")},
+		{IP: net.ParseIP("194.26.229.217")},
+	}
+	rr uint64
+)
+
 func (d *dialer) DialConnection(n, address string, timeout time.Duration, tlsConfig *tls.Config) (conn network.Conn, err error) {
-	c, err := net.DialTimeout(n, address, timeout)
+	//  net.DialTimeout(n, address, timeout)
+	dn := net.Dialer{Timeout: timeout}
+	c, err := dn.Dial(n, address)
+
+	i := atomic.AddUint64(&rr, 1)
+	dn.LocalAddr = srcAddrs[i%uint64(len(srcAddrs))]
+
 	if tlsConfig != nil {
 		cTLS := tls.Client(c, tlsConfig)
 		conn = newTLSConn(cTLS, defaultMallocSize)
