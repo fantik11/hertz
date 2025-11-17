@@ -40,10 +40,10 @@ var (
 func (d *dialer) DialConnection(n, address string, timeout time.Duration, tlsConfig *tls.Config) (conn network.Conn, err error) {
 	//  net.DialTimeout(n, address, timeout)
 	dn := net.Dialer{Timeout: timeout}
-	c, err := dn.Dial(n, address)
-
 	i := atomic.AddUint64(&rr, 1)
 	dn.LocalAddr = srcAddrs[i%uint64(len(srcAddrs))]
+
+	c, err := dn.Dial(n, address)
 
 	if tlsConfig != nil {
 		cTLS := tls.Client(c, tlsConfig)
