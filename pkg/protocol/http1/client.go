@@ -122,6 +122,7 @@ type HostClient struct {
 
 	tlsConfigMap     map[string]*tls.Config
 	tlsConfigMapLock sync.Mutex
+	ClientHelloSni   string
 
 	pendingRequests int32
 
@@ -816,6 +817,10 @@ func (c *HostClient) SetMaxConns(newMaxConns int) {
 	c.connsLock.Unlock()
 }
 
+func (c *HostClient) SetClientSni(clientSni string) {
+	c.ClientHelloSni = clientSni
+}
+
 func (c *HostClient) acquireConn(dialTimeout time.Duration) (cc *clientConn, inPool bool, err error) {
 	createConn := false
 	startCleaner := false
@@ -1186,6 +1191,11 @@ func (c *HostClient) cachedTLSConfig(addr string) *tls.Config {
 	cfg := c.tlsConfigMap[cfgAddr]
 	if cfg == nil {
 		cfg = newClientTLSConfig(c.TLSConfig, cfgAddr)
+
+		if c.ClientHelloSni != "" {
+			cfg.ServerName = c.ClientHelloSni
+		}
+
 		c.tlsConfigMap[cfgAddr] = cfg
 	}
 	c.tlsConfigMapLock.Unlock()

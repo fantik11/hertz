@@ -70,6 +70,7 @@ type HostClient interface {
 	CloseIdleConnections()
 	ShouldRemove() bool
 	ConnectionCount() int
+	SetClientSni(clientSni string)
 }
 
 type Doer interface {

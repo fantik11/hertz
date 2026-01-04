@@ -491,6 +491,7 @@ func (c *Client) do(ctx context.Context, req *protocol.Request, resp *protocol.R
 		return fmt.Errorf("unsupported protocol %q. http and https are supported", scheme)
 	}
 	host := uri.Host()
+	sni := string(req.Header.Host())
 	startCleaner := false
 
 	c.mLock.Lock()
@@ -500,7 +501,7 @@ func (c *Client) do(ctx context.Context, req *protocol.Request, resp *protocol.R
 		m = c.ms
 	}
 
-	h := string(host)
+	h := string(sni)
 	hc := m[h]
 	if hc == nil {
 		if c.clientFactory == nil {
@@ -508,8 +509,9 @@ func (c *Client) do(ctx context.Context, req *protocol.Request, resp *protocol.R
 			c.clientFactory = factory.NewClientFactory(newHttp1OptionFromClient(c))
 		}
 		hc, _ = c.clientFactory.NewHostClient()
+		hc.SetClientSni(sni)
 		hc.SetDynamicConfig(&client.DynamicConfig{
-			Addr:     utils.AddMissingPort(h, isTLS),
+			Addr:     utils.AddMissingPort(string(host), isTLS),
 			ProxyURI: proxyURI,
 			IsTLS:    isTLS,
 		})
